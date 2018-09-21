@@ -1,0 +1,14 @@
+{
+  "name": "puebloladronserver",
+  "version": "1.0.0",
+  "description": "Pueblo Ladron Websocket",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Eduardo Gonzalez",
+  "license": "ISC",
+  "dependencies": {
+    "websocket": "^1.0.28"
+  }
+}
