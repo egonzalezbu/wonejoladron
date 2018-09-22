@@ -1,5 +1,6 @@
 <html>
     <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
         <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
         <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
@@ -9,12 +10,104 @@
     <body>
         <div id="app">
             <div class="container">
-                <div v-if="!connected">
-                    <div class="row">
-                        <input type="text" v-model="ipAddress" class="col" />
+                <div class="card" v-if="!connected">
+                    <div class="card-body">
+                        <h5 class="card-title">Conectar al Servidor</h5>
+                        <div class="row">
+                            <div class="input-group mb-3 col">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text" id="basic-addon1">IP del Servidor</span>
+                                </div>
+                                <input v-model="ipAddress" type="text" class="form-control" placeholder="localhost" aria-label="IP" aria-describedby="basic-addon1">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="input-group mb-3 col">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text" id="basic-addon1">Nombre</span>
+                                </div>
+                                <input v-model="wonejo.name" type="text" class="form-control" placeholder="Nombre" aria-label="Nombre" aria-describedby="basic-addon1">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="input-group mb-3 col">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text" id="basic-addon1">Código</span>
+                                </div>
+                                <input v-model="wonejo.code" type="password" class="form-control" placeholder="Código" aria-label="Código" aria-describedby="basic-addon1">
+                            </div>
+                        </div>
+                        <div v-if="error" class="alert alert-danger" role="alert">
+                            {{error}}
+                        </div>
+                        <div class="row">
+                            <button class="btn btn-primary col" @click="connect()">Conectar</button>
+                        </div>
                     </div>
-                    <div class="row">
-                        <button class="btn btn-primary col">Conectar</button>
+                </div>
+
+                <div class="card" v-if="connected">
+                    <div class="card-body">
+                        <h5 class="card-title">Wonejo - Ladrón</h5>
+                        <p>{{getStatusText()}}</p>
+                        <div class="row">
+                            <div v-if="state == 'starting'" class="col-md-12">
+                                <button v-if="!wonejo.ready" class="btn btn-primary col-md-12" @click="sendReady()">Estoy Listo!</button>
+                                <div v-if="wonejo.ready" class="alert alert-primary col-md-12" role="alert">
+                                    Esperando a los demás wonejos
+                                </div>
+                            </div>
+
+                            <div v-if="state == 'day'" class="col-md-12">
+                                
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card" v-if="connected">
+                    <div class="card-body">
+                        <h5 class="card-title">Wonejos</h5>
+                        <div class="row">
+                            <ul>
+                                <li v-for="wonejo in wonejos">
+                                    {{wonejo.name}}: 
+                                    <span v-if="wonejo.alive">Vivo</span>
+                                    <span v-if="!wonejo.alive">Muerto</span>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card" v-if="state && state != 'starting'">
+                    <div class="card-body">
+                        <h5 class="card-title">¿Wonejo o Ladrón?</h5>
+                        <div class="row">
+                            <button class="btn btn-warning col-md-12" @click="toggleShowStatus()">Mostrar/Ocultar</button>
+                        </div> 
+                        <div v-if="showStatus">
+                            <div class="row">
+                                <p>{{getWonejoType()}}</p>
+                            </div>
+                            <div class="row" v-if="wonejo.ladron || !wonejo.alive">
+                                <span>Ladrones:</span>
+                                <ul>
+                                    <li v-for="wonejo in wonejosLadrones()">
+                                        {{wonejo.name}}
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card" v-if="connected">
+                    <div class="card-body">
+                        <h5 class="card-title">Logs</h5>
+                        <div class="row">
+                            <p class="col-md-12" v-for="log in logs">{{log.timestamp}}: {{log.text}}</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -27,24 +120,84 @@
             data: {
                 ipAddress: "localhost",
                 connection: null,
-                connected: false
+                connected: false,
+                wonejo: {
+                    name: 'Eduardo',
+                    code: '123',
+                    ready: false,
+                    alive: true
+                },
+                error: null,
+                wonejos: [],
+                logs: [],
+                state: null,
+                showStatus: false
             },
             created: function() { 
             },
             methods: {
                 connect: function(){
-                    this.connection = new WebSocket(`ws://${ipAddress}:6969`);
+                    if(this.validateLogin()){
+                        this.error = "";
+                        this.connection = new WebSocket(`ws://${this.ipAddress}:6969`);
                 
-                    this.connection.onerror = function(error) {
-                        this.message = error;
+                        this.connection.onerror = function(error) {
+                            this.error = `Error: ${error}`;
+                        }.bind(this);
+                    
+                        this.connection.onopen = function(event) {
+                            let data = {
+                                method: 'login',
+                                wonejo: this.wonejo
+                            };
+                            this.connection.send(JSON.stringify(data));
+                            this.connected = true;
+                        }.bind(this);
+
+                        this.connection.onmessage = function(event){
+                            let data = JSON.parse(event.data);
+                            if(data.method == 'updateWonejos') {
+                                this.updateWonejos(data.wonejos);
+                            }
+                            if(data.method == 'updateLogs') {
+                                this.logs = data.logs;
+                            }
+                            if(data.method == 'updateStatus') {
+                                this.state = data.state;
+                            }
+                        }.bind(this);
+                    }
+                },
+                validateLogin: function() {
+                    if(!this.wonejo.code) this.error = 'Debes ingresar un código';
+                    if(!this.wonejo.name) this.error = 'Debes ingresar un nombre';
+                    if(!this.ipAddress) this.error = 'Debes ingresar una dirección IP';
+                    return this.ipAddress && this.wonejo.name && this.wonejo.code;
+                },
+                updateWonejos: function(wonejos){
+                    console.log(wonejos);
+                    this.wonejos = wonejos;
+                    this.wonejo = wonejos.find((won) => won.code == this.wonejo.code);
+                },
+                getStatusText: function() {
+                    if(this.state == 'starting') return 'Esperando Wonejos';
+                    if(this.state == 'day') return 'Wonejos deben votar';
+                },
+                sendReady: function() {
+                    let data = {
+                        method: 'setReady',
+                        wonejo: this.wonejo
                     };
-                
-                    this.connection.onopen = function(event) {
-                        this.connected = true;
-                    };
-                }
-                sendMessage: function() {
-                    this.connection.send("Wena Wenaa");
+                    this.connection.send(JSON.stringify(data));
+                },
+                toggleShowStatus: function(){
+                    this.showStatus = !this.showStatus;
+                },
+                getWonejoType: function() {
+                    return this.wonejo.ladron ? 'Eres Ladrón, mata wonejos!' : 'Eres Wonejo, mata ladrones!';
+                },
+                wonejosLadrones: function() {
+                    return this.wonejos.filter((won) => {return won.ladron});
                 }
             }
         });
