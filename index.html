@@ -9,7 +9,8 @@
     <body>
         <div id="app">
             <div class="container-fluid">
-
+                {{message}}
+                <button @click="sendMessage()">Enviar</button>
             </div>
         </div>
     </body>
@@ -18,7 +19,25 @@
         var app = new Vue({
             el: '#app',
             data: {
+                message: "Initial Message",
+                connection: null
+            },
+            created: function() {
+                this.message = 'wena choro';
+                this.connection = new WebSocket('ws://localhost:6969');
                 
+                this.connection.onerror = function(error) {
+                    this.message = error;
+                };
+                
+                this.connection.onopen = function(event) {
+                    this.message = "Conectado!";
+                };
+            },
+            methods: {
+                sendMessage: function() {
+                    this.connection.send("Wena Wenaa");
+                }
             }
         });
     </script>
