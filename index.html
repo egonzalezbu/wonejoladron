@@ -8,9 +8,15 @@
     </head>
     <body>
         <div id="app">
-            <div class="container-fluid">
-                {{message}}
-                <button @click="sendMessage()">Enviar</button>
+            <div class="container">
+                <div v-if="!connected">
+                    <div class="row">
+                        <input type="text" v-model="ipAddress" class="col" />
+                    </div>
+                    <div class="row">
+                        <button class="btn btn-primary col">Conectar</button>
+                    </div>
+                </div>
             </div>
         </div>
     </body>
@@ -19,22 +25,24 @@
         var app = new Vue({
             el: '#app',
             data: {
-                message: "Initial Message",
-                connection: null
+                ipAddress: "localhost",
+                connection: null,
+                connected: false
             },
-            created: function() {
-                this.message = 'wena choro';
-                this.connection = new WebSocket('ws://localhost:6969');
-                
-                this.connection.onerror = function(error) {
-                    this.message = error;
-                };
-                
-                this.connection.onopen = function(event) {
-                    this.message = "Conectado!";
-                };
+            created: function() { 
             },
             methods: {
+                connect: function(){
+                    this.connection = new WebSocket(`ws://${ipAddress}:6969`);
+                
+                    this.connection.onerror = function(error) {
+                        this.message = error;
+                    };
+                
+                    this.connection.onopen = function(event) {
+                        this.connected = true;
+                    };
+                }
                 sendMessage: function() {
                     this.connection.send("Wena Wenaa");
                 }
