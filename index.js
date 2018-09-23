@@ -102,12 +102,7 @@ function setReady(won){
         console.log(`${wonejo.name} es un ladrón!`);
       }
     }
-    state = 'day';
-    addLog('Ha comenzado el día!');
-    for(let wonejo of wonejos){
-        wonejo.played = false;
-        wonejo.accusations = 0;
-    }
+    initDay();
     updateStatus();
   }
   updateWonejos();
@@ -124,7 +119,7 @@ function killLadron(wonejo, ladron){
     localWonejo.played = true;
     let localLadron = wonejos.find((won) => {return won.code == ladron.code});
     localLadron.accusations++;
-    if(!wonejos.find((won) => {return !won.played})){
+    if(!wonejos.find((won) => {return !won.played && won.alive})){
         let accusedWonejo = wonejos[0];
         let tie = false;
         for(let wonejo of wonejos){
@@ -135,9 +130,47 @@ function killLadron(wonejo, ladron){
         }
         if(!tie) {
             addLog(`Los wonejos han matado a ${accusedWonejo.name} el cual era un ${accusedWonejo.ladron ? "LADRÓN!" : "WONEJO!"}`);
+            accusedWonejo.alive = false;
+            if(!gameOver()) initNight();
         } else {
             addLog('Ha habido un empate en la votación. Hay que votar nuevamete');
             initDay();
         }
     }
+}
+
+function initDay(){
+    state = 'day';
+    addLog('Ha comenzado el día!');
+    for(let wonejo of wonejos){
+        wonejo.played = false;
+        wonejo.accusations = 0;
+    }
+}
+
+function initNight() {
+    
+}
+
+function gameOver() {
+    let aliveWonejos = wonejos.filter((won) => {return won.alive && !won.ladron});
+    let aliveLadrones = wonejos.filter((won) => {return won.alive && won.ladron});
+    if(aliveLadrones.length == 0){
+        addLog('Los Wonejos han matado a todos los ladrones!');
+        addLog('Victoria para los Wonejos!');
+        endGame();
+        return true;
+    }
+    if(aliveLadrones.length >= aliveWonejos.length){
+        addLog('Los Ladrones han matado a todos los wonejos!');
+        addLog('Victoria para los Ladrones!');
+        endGame();
+        return true;
+    }
+    return false;
+    
+}
+
+function endGame(){
+    
 }
