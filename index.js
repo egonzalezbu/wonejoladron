@@ -114,28 +114,58 @@ function addLog(text){
 }
 
 function killLadron(wonejo, ladron){
-    addLog(`${wonejo.name} acusó a ${ladron.name} de ser un ladrón`);
-    let localWonejo = wonejos.find((won) => {return won.code == wonejo.code});
-    localWonejo.played = true;
-    let localLadron = wonejos.find((won) => {return won.code == ladron.code});
-    localLadron.accusations++;
-    if(!wonejos.find((won) => {return !won.played && won.alive})){
-        let accusedWonejo = wonejos[0];
-        let tie = false;
-        for(let wonejo of wonejos){
-            if(wonejo.accusations > accusedWonejo.accusations){
-                tie = false;
-                accusedWonejo = wonejo;
-            } else if(wonejo.accusations == accusedWonejo.accusations) tie = true;
-        }
-        if(!tie) {
-            addLog(`Los wonejos han matado a ${accusedWonejo.name} el cual era un ${accusedWonejo.ladron ? "LADRÓN!" : "WONEJO!"}`);
-            accusedWonejo.alive = false;
-            if(!gameOver()) initNight();
-        } else {
-            addLog('Ha habido un empate en la votación. Hay que votar nuevamete');
-            initDay();
-        }
+    if(state == 'day' && !wonejo.played && wonejo.alive){
+        addLog(`${wonejo.name} acusó a ${ladron.name} de ser un ladrón`);
+        let localWonejo = wonejos.find((won) => {return won.code == wonejo.code});
+        localWonejo.played = true;
+        let localLadron = wonejos.find((won) => {return won.code == ladron.code});
+        localLadron.accusations++;
+        if(!wonejos.find((won) => {return !won.played && won.alive})){
+            let accusedWonejo = wonejos[0];
+            let tie = false;
+            for(let wonejo of wonejos){
+                if(wonejo.accusations > accusedWonejo.accusations){
+                    tie = false;
+                    accusedWonejo = wonejo;
+                } else if(wonejo.accusations == accusedWonejo.accusations) tie = true;
+            }
+            if(!tie) {
+                addLog(`Los wonejos han matado a ${accusedWonejo.name} el cual era un ${accusedWonejo.ladron ? "LADRÓN!" : "WONEJO!"}`);
+                accusedWonejo.alive = false;
+                if(!gameOver()) initNight();
+            } else {
+                addLog('Ha habido un empate en la votación. Hay que votar nuevamete');
+                initDay();
+            }
+        } 
+    }
+}
+
+function killLadron(wonejo, ladron) {
+        let localWonejo = wonejos.find((won) => {return won.code == wonejo.code});
+        let localLadron = wonejos.find((won) => {return won.code == ladron.code});
+        if(state == 'day' && !wonejo.played && wonejo.alive){
+        localLadron.accusations++;
+        localWonejo.played = true;
+        addLog(`${wonejo.name} acusó a ${ladron.name} de ser un ladrón`);
+        if(!wonejos.find((won) => {return !won.played && won.alive})){
+            let accusedWonejo = wonejos[0];
+            let tie = false;
+            for(let wonejo of wonejos){
+                if(wonejo.accusations > accusedWonejo.accusations){
+                    tie = false;
+                    accusedWonejo = wonejo;
+                } else if(wonejo.accusations == accusedWonejo.accusations) tie = true;
+            }
+            if(!tie) {
+                addLog(`Los wonejos han matado a ${accusedWonejo.name} el cual era un ${accusedWonejo.ladron ? "LADRÓN!" : "WONEJO!"}`);
+                accusedWonejo.alive = false;
+                if(!gameOver()) initNight();
+            } else {
+                addLog('Ha habido un empate en la votación. Hay que votar nuevamete');
+                initDay();
+            }
+        } 
     }
 }
 
@@ -179,5 +209,7 @@ function gameOver() {
 }
 
 function endGame(){
-    
+    for(let connection of connections){
+        connection.sendUTF(JSON.stringify({method: "endGame"}));
+    }
 }
