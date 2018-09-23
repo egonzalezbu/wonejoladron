@@ -139,6 +139,8 @@ function killLadron(wonejo, ladron){
     }
 }
 
+
+
 function initDay(){
     state = 'day';
     addLog('Ha comenzado el día!');
@@ -149,7 +151,12 @@ function initDay(){
 }
 
 function initNight() {
-    
+    state = 'night';
+    addLog('Ha comenzado la noche!');
+    for(let wonejo of wonejos){
+        wonejo.played = false;
+        wonejo.accusations = 0;
+    }
 }
 
 function gameOver() {
