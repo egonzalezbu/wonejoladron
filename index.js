@@ -34,6 +34,9 @@ wsServer.on('request', function(request) {
     if(data.method == 'setReady'){
       setReady(data.wonejo);
     }
+    if(data.method == 'killLadron'){
+        killLadron(data.wonejo, data.ladron);
+    }
   });
 
   connection.on('close', function(connection) {
@@ -99,9 +102,12 @@ function setReady(won){
         console.log(`${wonejo.name} es un ladrón!`);
       }
     }
-    console.log(wonejos);
     state = 'day';
-    addLog('Ha comenzado el juego!');
+    addLog('Ha comenzado el día!');
+    for(let wonejo of wonejos){
+        wonejo.played = false;
+        wonejo.accusations = 0;
+    }
     updateStatus();
   }
   updateWonejos();
@@ -110,4 +116,28 @@ function setReady(won){
 function addLog(text){
   logs.push({timestamp: new Date().toLocaleTimeString(), text: text});
   updateLogs();
+}
+
+function killLadron(wonejo, ladron){
+    addLog(`${wonejo.name} acusó a ${ladron.name} de ser un ladrón`);
+    let localWonejo = wonejos.find((won) => {return won.code == wonejo.code});
+    localWonejo.played = true;
+    let localLadron = wonejos.find((won) => {return won.code == ladron.code});
+    localLadron.accusations++;
+    if(!wonejos.find((won) => {return !won.played})){
+        let accusedWonejo = wonejos[0];
+        let tie = false;
+        for(let wonejo of wonejos){
+            if(wonejo.accusations > accusedWonejo.accusations){
+                tie = false;
+                accusedWonejo = wonejo;
+            } else if(wonejo.accusations == accusedWonejo.accusations) tie = true;
+        }
+        if(!tie) {
+            addLog(`Los wonejos han matado a ${accusedWonejo.name} el cual era un ${accusedWonejo.ladron ? "LADRÓN!" : "WONEJO!"}`);
+        } else {
+            addLog('Ha habido un empate en la votación. Hay que votar nuevamete');
+            initDay();
+        }
+    }
 }
