@@ -96,7 +96,9 @@ function setReady(won){
   let wonejo = findWonejo(won.code);
   wonejo.ready = true;
   addLog(`${wonejo.name} está listo!`);
-  if(!wonejos.find((won) => {return !won.ready})){
+  if(wonejos.length < 4){
+      addLog(`Deben estar listos al menos 4 wonejos para comenzar`);
+  } else if(!wonejos.find((won) => {return !won.ready})){
     let ladronCount = 0;
     while(ladronCount < Math.floor(wonejos.length * ladronPercentaje)){
       let wonejo = wonejos[Math.floor(Math.random()*wonejos.length)];
