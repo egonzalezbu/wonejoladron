@@ -21,7 +21,7 @@ fs.readFile('./index.html', (err, html) => {
         res.writeHeader(200, {"Content-Type": "text/html"});  
         res.write(html);  
         res.end(); 
-    }).listen(80, 'https://fast-wave-54929.herokuapp.com/', () => {
+    }).listen(8080, '127.0.0.1', () => {
         console.log("Web Server Listening At Port: 8080");
     });
 });
