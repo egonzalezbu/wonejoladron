@@ -1,0 +1,16 @@
+{
+  "name": "wonejoladron",
+  "scripts": {
+    "postdeploy": "npm install;node ."
+  },
+  "env": {
+  },
+  "formation": {
+  },
+  "addons": [
+
+  ],
+  "buildpacks": [
+
+  ]
+}
