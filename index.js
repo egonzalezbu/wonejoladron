@@ -2,6 +2,7 @@ const ladronPercentaje = 0.3;
 
 var WebSocketServer = require('websocket').server;
 var http = require('http');
+const fs = require('fs');
 
 console.log("PUEBLO LADRON!");
 
@@ -11,6 +12,19 @@ let logs = [];
 
 
 let state = 'starting';
+
+fs.readFile('./index.html', (err, html) => {
+    if(err) {
+        throw err;
+    }
+    var httpServer = http.createServer((req,res) => {
+        res.writeHeader(200, {"Content-Type": "text/html"});  
+        res.write(html);  
+        res.end(); 
+    }).listen(8080, '127.0.0.1', () => {
+        console.log("Web Server at port: 8080");
+    });
+});
 
 var server = http.createServer(function(request, response) {});
 server.listen(6969, function() { });
@@ -36,6 +50,9 @@ wsServer.on('request', function(request) {
     }
     if(data.method == 'killLadron'){
         killLadron(data.wonejo, data.ladron);
+    }
+    if(data.method == 'killWonejo'){
+        killWonejo(data.ladron, data.wonejo);
     }
   });
 
@@ -109,22 +126,25 @@ function setReady(won){
 }
 
 function addLog(text){
-  logs.push({timestamp: new Date().toLocaleTimeString(), text: text});
+  let log = {timestamp: new Date().toLocaleTimeString(), text: text};
+  console.log(log);
+  logs.push(log);
   updateLogs();
 }
 
 function killLadron(wonejo, ladron){
-    if(state == 'day' && !wonejo.played && wonejo.alive){
-        addLog(`${wonejo.name} acusó a ${ladron.name} de ser un ladrón`);
-        let localWonejo = wonejos.find((won) => {return won.code == wonejo.code});
+    let localWonejo = wonejos.find((won) => {return won.code == wonejo.code});
+    let localLadron = wonejos.find((won) => {return won.code == ladron.code});
+    console.log(state == 'day', !localWonejo.played, localWonejo.alive);
+    if(state == 'day' && !localWonejo.played && localWonejo.alive){
+        addLog(`${localWonejo.name} acusó a ${localLadron.name} de ser un ladrón`);
         localWonejo.played = true;
-        let localLadron = wonejos.find((won) => {return won.code == ladron.code});
         localLadron.accusations++;
         if(!wonejos.find((won) => {return !won.played && won.alive})){
-            let accusedWonejo = wonejos[0];
+            let accusedWonejo = null;
             let tie = false;
             for(let wonejo of wonejos){
-                if(wonejo.accusations > accusedWonejo.accusations){
+                if(!accusedWonejo || wonejo.accusations > accusedWonejo.accusations){
                     tie = false;
                     accusedWonejo = wonejo;
                 } else if(wonejo.accusations == accusedWonejo.accusations) tie = true;
@@ -139,31 +159,31 @@ function killLadron(wonejo, ladron){
             }
         } 
     }
+    updateWonejos();
 }
 
-function killLadron(wonejo, ladron) {
-        let localWonejo = wonejos.find((won) => {return won.code == wonejo.code});
-        let localLadron = wonejos.find((won) => {return won.code == ladron.code});
-        if(state == 'day' && !wonejo.played && wonejo.alive){
-        localLadron.accusations++;
-        localWonejo.played = true;
-        addLog(`${wonejo.name} acusó a ${ladron.name} de ser un ladrón`);
-        if(!wonejos.find((won) => {return !won.played && won.alive})){
-            let accusedWonejo = wonejos[0];
+function killWonejo(ladron, wonejo) {
+    let localWonejo = wonejos.find((won) => {return won.code == wonejo.code});
+    let localLadron = wonejos.find((won) => {return won.code == ladron.code});
+    if(state == 'night' && !localLadron.played && localLadron.alive && localLadron.ladron){
+        localWonejo.accusations++;
+        localLadron.played = true;
+        if(!wonejos.find((won) => {return won.lardon && !won.played && won.alive})){
+            let killedWonejo = null;
             let tie = false;
             for(let wonejo of wonejos){
-                if(wonejo.accusations > accusedWonejo.accusations){
+                if(!killedWonejo || wonejo.accusations > killedWonejo.accusations){
                     tie = false;
-                    accusedWonejo = wonejo;
-                } else if(wonejo.accusations == accusedWonejo.accusations) tie = true;
+                    killedWonejo = wonejo;
+                } else if(wonejo.accusations == killedWonejo.accusations) tie = true;
             }
             if(!tie) {
-                addLog(`Los wonejos han matado a ${accusedWonejo.name} el cual era un ${accusedWonejo.ladron ? "LADRÓN!" : "WONEJO!"}`);
-                accusedWonejo.alive = false;
-                if(!gameOver()) initNight();
+                addLog(`Los ladrones han matado a ${killedWonejo.name}}`);
+                killedWonejo.alive = false;
+                if(!gameOver()) initDay();
             } else {
-                addLog('Ha habido un empate en la votación. Hay que votar nuevamete');
-                initDay();
+                addLog('Los ladrones no se pusieron de acuerdo, deben votar nuevamente');
+                initNight();
             }
         } 
     }
@@ -178,15 +198,19 @@ function initDay(){
         wonejo.played = false;
         wonejo.accusations = 0;
     }
+    updateStatus();
+    updateWonejos();
 }
 
 function initNight() {
     state = 'night';
     addLog('Ha comenzado la noche!');
     for(let wonejo of wonejos){
-        wonejo.played = false;
+        wonejo.played = wonejo.ladron ? false : true;
         wonejo.accusations = 0;
     }
+    updateStatus();
+    updateWonejos();
 }
 
 function gameOver() {
@@ -195,12 +219,17 @@ function gameOver() {
     if(aliveLadrones.length == 0){
         addLog('Los Wonejos han matado a todos los ladrones!');
         addLog('Victoria para los Wonejos!');
+        updateWonejos();
         endGame();
         return true;
     }
     if(aliveLadrones.length >= aliveWonejos.length){
         addLog('Los Ladrones han matado a todos los wonejos!');
         addLog('Victoria para los Ladrones!');
+        for(let wonejo of wonejos) {
+            wonejo.alive = wonejo.ladron && wonejo.alive ? true : false;
+        }
+        updateWonejos();
         endGame();
         return true;
     }
@@ -212,4 +241,8 @@ function endGame(){
     for(let connection of connections){
         connection.sendUTF(JSON.stringify({method: "endGame"}));
     }
+    wonejos = [];
+    connections = [];
+    logs = [];
+    state = 'starting';
 }

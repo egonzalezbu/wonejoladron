@@ -10,7 +10,7 @@
     <body>
         <div id="app">
             <div class="container">
-                <div class="card" v-if="!connected">
+                <div class="card" v-if="!connected && state != 'endGame'">
                     <div class="card-body">
                         <h5 class="card-title">Conectar al Servidor</h5>
                         <div class="row">
@@ -46,11 +46,13 @@
                     </div>
                 </div>
 
-                <div class="card" v-if="connected">
+                <div class="card" v-if="connected && state != 'endGame'">
                     <div class="card-body">
                         <h5 class="card-title">Wonejo - Ladrón</h5>
                         <p>{{getStatusText()}}</p>
                         <div class="row">
+
+                            <!-- STARTING -->
                             <div v-if="state == 'starting'" class="col-md-12">
                                 <button v-if="!wonejo.ready" class="btn btn-primary col-md-12" @click="sendReady()">Estoy Listo!</button>
                                 <div v-if="wonejo.ready" class="alert alert-primary col-md-12" role="alert">
@@ -58,9 +60,46 @@
                                 </div>
                             </div>
 
+                            <!-- DAY -->
                             <div v-if="state == 'day'" class="col-md-12">
-                                
+                                <div v-if="!wonejo.played" class="col-md-12">
+                                    <div v-for="wonejo in otherWonejos()">
+                                        <div class="row">
+                                            <button @click="accuse(wonejo)" class="btn btn-primary col-md-12">Acusar a {{wonejo.name}}</button>
+                                        </div>
+                                    </div> 
+                                </div>
+                                <div v-if="wonejo.played" class="alert alert-primary col-md-12" role="alert">
+                                    Esperando a los demás wonejos
+                                </div>
                             </div>
+
+                            <!-- NIGHT -->
+                            <div v-if="state == 'night'" class="col-md-12">
+                                <div v-if="!wonejo.played" class="col-md-12">
+                                    <div v-for="wonejo in innocentsWonejos()">
+                                        <div class="row">
+                                            <button @click="kill(wonejo)" class="btn btn-danger col-md-12">Matar a {{wonejo.name}}</button>
+                                        </div>
+                                    </div> 
+                                </div>
+                                <div v-if="wonejo.played" class="alert alert-primary col-md-12" role="alert">
+                                    Esperando a los demás ladrones
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card" v-if="state == 'endGame'">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="alert alert-primary col-md-12" role="alert">
+                                Juego Finalizado!
+                            </div>
+                        </div>
+                        <div class="row">
+                            <button @click="reloadPage()" class="btn btn-primary col-md-12">Jugar otra vez!</button>
                         </div>
                     </div>
                 </div>
@@ -124,8 +163,9 @@
                 wonejo: {
                     name: 'Eduardo',
                     code: '123',
-                    ready: false,
-                    alive: true
+                    played: false,
+                    alive: true,
+                    ready: false
                 },
                 error: null,
                 wonejos: [],
@@ -160,10 +200,13 @@
                                 this.updateWonejos(data.wonejos);
                             }
                             if(data.method == 'updateLogs') {
-                                this.logs = data.logs;
+                                this.logs = data.logs.reverse();
                             }
                             if(data.method == 'updateStatus') {
                                 this.state = data.state;
+                            }
+                            if(data.method == 'endGame') {
+                                this.state = 'endGame';
                             }
                         }.bind(this);
                     }
@@ -175,15 +218,16 @@
                     return this.ipAddress && this.wonejo.name && this.wonejo.code;
                 },
                 updateWonejos: function(wonejos){
-                    console.log(wonejos);
                     this.wonejos = wonejos;
                     this.wonejo = wonejos.find((won) => won.code == this.wonejo.code);
                 },
                 getStatusText: function() {
                     if(this.state == 'starting') return 'Esperando Wonejos';
                     if(this.state == 'day') return 'Wonejos deben votar';
+                    if(this.state == 'night') return 'Ladrones deben votar';
                 },
                 sendReady: function() {
+                    this.ready = true;
                     let data = {
                         method: 'setReady',
                         wonejo: this.wonejo
@@ -198,6 +242,32 @@
                 },
                 wonejosLadrones: function() {
                     return this.wonejos.filter((won) => {return won.ladron});
+                },
+                otherWonejos: function() {
+                    return this.wonejos.filter((won) => {return won.code !== this.wonejo.code && won.alive});
+                },
+                innocentsWonejos: function() {
+                    return this.wonejos.filter((won) => {return won.code !== this.wonejo.code && !won.ladron && won.alive});
+                },
+                accuse: function(ladron) {
+                    let data = {
+                        method: 'killLadron',
+                        wonejo: this.wonejo,
+                        ladron: ladron
+                    };
+                    this.connection.send(JSON.stringify(data));
+                },
+                kill: function(wonejo) {
+                    let data = {
+                        method: 'killWonejo',
+                        wonejo: wonejo,
+                        ladron: this.wonejo
+                    };
+                    this.connection.send(JSON.stringify(data));
+
+                },
+                reloadPage: function(){
+                    location.reload();
                 }
             }
         });
