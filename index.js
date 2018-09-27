@@ -22,7 +22,7 @@ fs.readFile('./index.html', (err, html) => {
         res.write(html);  
         res.end(); 
     }).listen(8080, '127.0.0.1', () => {
-        console.log("Web Server at port: 8080");
+        console.log("Web Server Listening At Port: 8080");
     });
 });
 
