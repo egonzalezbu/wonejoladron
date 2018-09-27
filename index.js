@@ -2,7 +2,6 @@ const ladronPercentaje = 0.3;
 
 var WebSocketServer = require('websocket').server;
 var http = require('http');
-const fs = require('fs');
 
 console.log("PUEBLO LADRON!");
 
@@ -13,21 +12,10 @@ let logs = [];
 
 let state = 'starting';
 
-fs.readFile('./index.html', (err, html) => {
-    if(err) {
-        throw err;
-    }
-    var httpServer = http.createServer((req,res) => {
-        res.writeHeader(200, {"Content-Type": "text/html"});  
-        res.write(html);  
-        res.end(); 
-    }).listen(8080, '127.0.0.1', () => {
-        console.log("Web Server Listening At Port: 8080");
-    });
-});
-
 var server = http.createServer(function(request, response) {});
-server.listen(6969, function() { });
+server.listen(process.env.PORT || 6969, function() {
+    console.log(`Comenzando servidor en el puerto: ${process.env.PORT ? process.env.PORT : 6969}`);
+});
 
 // create the server
 wsServer = new WebSocketServer({
