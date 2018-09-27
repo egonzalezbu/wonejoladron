@@ -13,9 +13,8 @@ let logs = [];
 let state = 'starting';
 
 var server = http.createServer(function(request, response) {});
-server.listen(+process.env.PORT || 6969, function() {
-    console.log(`Comenzando servidor en el puerto: ${process.env.PORT ? process.env.PORT : 6969}`);
-});
+console.log("Port: " + process.env.PORT);
+erver.listen(process.env.PORT || 6969);
 
 // create the server
 wsServer = new WebSocketServer({
