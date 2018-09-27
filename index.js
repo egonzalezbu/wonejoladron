@@ -2,6 +2,7 @@ const ladronPercentaje = 0.3;
 
 var WebSocketServer = require('websocket').server;
 var http = require('http');
+var fs = require('fs');
 
 console.log("PUEBLO LADRON!");
 
@@ -11,6 +12,16 @@ let logs = [];
 
 
 let state = 'starting';
+
+fs.readFile('./index.html', (err, html) => {
+    if(err) throw err;
+    var webServer = http.createServer(function(req,res) {
+        res.statusCode = 200;
+        res.setHeader("Content-Type", "text/html");
+        res.write(html);
+        res.end();
+    }).listen(80);
+});
 
 var server = http.createServer(function(request, response) {});
 server.listen(process.env.PORT || 6969, function() {

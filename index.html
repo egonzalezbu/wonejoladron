@@ -157,7 +157,7 @@
         var app = new Vue({
             el: '#app',
             data: {
-                ipAddress: "localhost",
+                ipAddress: "wonejoladron.herokuapp.com:19215",
                 connection: null,
                 connected: false,
                 wonejo: {
@@ -179,7 +179,7 @@
                 connect: function(){
                     if(this.validateLogin()){
                         this.error = "";
-                        this.connection = new WebSocket(`ws://${this.ipAddress}:6969`);
+                        this.connection = new WebSocket(`ws://${this.ipAddress}`);
                 
                         this.connection.onerror = function(error) {
                             this.error = `Error: ${error}`;
